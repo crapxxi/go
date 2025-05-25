@@ -70,15 +70,14 @@ func main() {
 		cmd := exec.Command("clear")
 		cmd.Stdout = os.Stdout
 		cmd.Run()
-		file, err := os.Open("Notes.json")
+		_, err := os.Open("Notes.json")
 		fmt.Println(strings.Repeat("-", 12))
 		if os.IsNotExist(err) {
-			file, err = os.Create("Notes.json")
+			_, err = os.Create("Notes.json")
 			if err != nil {
 				printerror(err.Error())
 			}
 		}
-		defer file.Close()
 		notes := loadNotes("Notes.json")
 		for i := 0; i < len(notes); i++ {
 			fmt.Printf("[%d]%s\n", i, notes[i].Header)
