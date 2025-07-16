@@ -27,10 +27,12 @@ type RegistrationRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Email    string `json:"email"`
+	Role     string `json:"role"`
 }
 type ProfileRequest struct {
 	Username string `json:"username"`
 	Email    string `json:"email"`
+	Role     string `json:"role"`
 }
 type LoginRequest struct {
 	NameorEmail string `json:"nameoremail"`
@@ -62,8 +64,8 @@ func getProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var user ProfileRequest
-	row := db.QueryRow("select username, email from users where username = $1", username)
-	err := row.Scan(&user.Username, &user.Email)
+	row := db.QueryRow("select username, email, role from users where username = $1", username)
+	err := row.Scan(&user.Username, &user.Email, &user.Role)
 	if err != nil {
 		http.Error(w, "invalid data", http.StatusInternalServerError)
 		log.Panic(err)
@@ -88,7 +90,7 @@ func Registration(w http.ResponseWriter, r *http.Request) {
 		log.Panic(err)
 		log.Print("something with hash")
 	}
-	_, err = db.Exec("insert into users (username,password_hash,email) values ($1,$2,$3)", req.Username, hashed, req.Email)
+	_, err = db.Exec("insert into users (username,password_hash,email, role) values ($1,$2,$3,$4)", req.Username, hashed, req.Email, req.Role)
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
 			http.Error(w, "Username or email already exists", http.StatusConflict)
@@ -186,7 +188,17 @@ func main() {
 	r.Group(func(r chi.Router) {
 		r.Use(AuthMiddleware)
 		r.Get("/profile", getProfile)
+		r.Post("/products", postProducts)
+		r.Put("/products/{id}", putProduct)
+		r.Delete("/products/{id}", deleteProduct)
+		r.Route("/cart", func(r chi.Router) {
+			r.Get("/", getCart)
+			r.Post("/add", addCart)
+		})
 	})
+
+	r.Get("/products", getProducts)
+	r.Get("/products/{id}", getProductByID)
 	r.Post("/login", Login)
 	r.Post("/registration", Registration)
 	http.ListenAndServe(":8080", r)
